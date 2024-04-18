@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 
 from os import environ
@@ -63,6 +64,16 @@ class t:
     linkedin = "LinkedIn"
 
 def updateDataFromNotion(writeLocation="data/"):
+    
+    if not os.path.exists(writeLocation):
+        os.makedirs(writeLocation)
+    
+    if not os.path.exists(writeLocation + "images/"):
+        os.makedirs(writeLocation + "images/")
+    
+    if not os.path.exists(writeLocation + "json/"):
+        os.makedirs(writeLocation + "json/")
+    
     load_dotenv()
     if "NOTION_API_TOKEN" not in environ:
         raise Exception("Please provide a Notion integration token.")
