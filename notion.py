@@ -2,8 +2,10 @@ import os
 from dotenv import load_dotenv
 
 from os import environ
+from os.path import exists
 import json
 import requests
+from datetime import datetime
 
 from notion_client import Client
 from pydantic import BaseModel
@@ -74,6 +76,11 @@ def updateDataFromNotion(writeLocation="data/"):
     if not os.path.exists(writeLocation + "json/"):
         os.makedirs(writeLocation + "json/")
     
+    if exists(f"{writeLocation}/json/execs_export.json"):
+        
+        with open(f"{writeLocation}/json/execs_export.json", "r") as fi:
+            cached_data = json.loads(fi.read())        
+    
     load_dotenv()
     if "NOTION_API_TOKEN" not in environ:
         raise Exception("Please provide a Notion integration token.")
@@ -139,6 +146,20 @@ def updateDataFromNotion(writeLocation="data/"):
         
         p = page["properties"]
         
+        last_updated = page["last_edited_time"]
+        student_id = propTextExtractor(p["Student ID"]),
+        
+        # don't go through the trouble of everything if the page hasn't changed
+        # right now everything is simply downloading the exec images
+        stale_data = False
+        
+        for exec in cached_data:
+            if exec["student_id"] == student_id[0]:
+                if last_updated == exec["last_updated"]:
+                    stale_data = True
+                    break
+        
+        
         # special code is needed to handle relations in the db
         current_roles = multiplePropTextExtractor(p["Role"])
         past_roles = multiplePropTextExtractor(p["Prior Roles"])
@@ -160,7 +181,7 @@ def updateDataFromNotion(writeLocation="data/"):
         # download the image for each exec, if available
         student_id = propTextExtractor(p["Student ID"])
         
-        if (p["Profile Picture"]["files"] != []):
+        if (not stale_data and p["Profile Picture"]["files"] != []):
             file_name:str = p["Profile Picture"]["files"][0]["name"]
             file_url:str = p["Profile Picture"]["files"][0]["file"]["url"]
             file_extension:str = file_name.split('.')[-1]
