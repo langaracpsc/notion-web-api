@@ -203,7 +203,7 @@ def updateDataFromNotion(writeLocation="data/"):
         
         e = LCSCExecutive(
             name =              propTextExtractor(p["Name"]),
-            full_name =         propTextExtractor(p["Full Name"]),
+            full_name =         propTextExtractor(p["Legal Name"]),
             pronouns =          propTextExtractor(p["Pronouns"]),
             profile_picture =   executive_images[student_id],
             social_media_links= sc_links,
