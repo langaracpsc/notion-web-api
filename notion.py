@@ -87,7 +87,7 @@ def updateDataFromNotion(writeLocation="data/"):
 
 
     def propTextExtractor(property:dict) -> str | None:
-        ptype = property[t.type]
+        ptype = property["type"]
         
         if ptype == "title":
             if property["title"] == None: return None
