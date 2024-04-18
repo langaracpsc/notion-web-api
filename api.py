@@ -6,6 +6,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 import os
 from os.path import exists
+import json
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -45,6 +46,23 @@ async def executives_all() -> list[LCSCExecutive]:
     response = FileResponse(path)
     return response
 
+@app.get(
+    "/executives/active", 
+    summary="Returns a list of all non-retired LCSC executives",
+)
+async def executives_active() -> list[LCSCExecutive]:
+    path = f"{DATA_DIRECTORY}/json/execs_export.json"
+    
+    with open(path, "r") as fi:
+        data = json.loads(fi.read())
+        
+    new_arr = []
+    
+    for e in data:
+        if e["current_status"] != "Retired":
+            new_arr.append(e)
+    
+    return new_arr
 
 @app.get(
     "/executives/image/{filename}", 
