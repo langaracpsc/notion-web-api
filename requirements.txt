@@ -1,0 +1,7 @@
+python-dotenv
+notion-client
+fastapi
+pydantic
+requests
+uvicorn
+schedule
