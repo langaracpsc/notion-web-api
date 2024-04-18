@@ -181,17 +181,19 @@ def updateDataFromNotion(writeLocation="data/"):
         # download the image for each exec, if available
         student_id = propTextExtractor(p["Student ID"])
         
-        if (not stale_data and p["Profile Picture"]["files"] != []):
+        if (p["Profile Picture"]["files"] != []):
             file_name:str = p["Profile Picture"]["files"][0]["name"]
             file_url:str = p["Profile Picture"]["files"][0]["file"]["url"]
             file_extension:str = file_name.split('.')[-1]
             
             assert file_name.split(".")[-1] in ["webp", "jpg", "png", "jpeg", ".gif"]
             
-            with open(f"data/images/{student_id}.{file_extension}", "wb") as fi:
-                            
-                r = requests.get(file_url)
-                fi.write(r.content)
+            # don't actually request the image if we know it hasn't changed
+            if not stale_data:
+                with open(f"data/images/{student_id}.{file_extension}", "wb") as fi:
+                                
+                    r = requests.get(file_url)
+                    fi.write(r.content)
             
             executive_images[student_id] = f"{student_id}.{file_extension}"
         else:
