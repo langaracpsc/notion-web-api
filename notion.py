@@ -139,6 +139,33 @@ def updateDataFromNotion(writeLocation="data/"):
     # extract only the information that we need:
     executives: list[LCSCExecutive] = []
     executive_images: dict[str, str] = {}
+    
+    all_stale = True
+    # check to see if all data is stale : if it is then we can exit early.
+    for page in exec_pages["results"]:
+        assert page["object"] == "page"
+        
+        p = page["properties"]
+        
+        last_updated = page["last_edited_time"]
+        student_id = propTextExtractor(p["Student ID"]),
+        
+        # don't go through the trouble of everything if the page hasn't changed
+        # right now everything is simply downloading the exec images
+        for exec in cached_data:
+            if exec["student_id"] == student_id[0]:
+                if last_updated != exec["last_updated"]:
+                    all_stale = False
+                    break
+        
+        if not all_stale:
+            break
+    
+    if all_stale:
+        print("No new data found from Notion.")
+        return
+    else:
+        print("New data found in Notion: recreating cache:")
 
     for page in exec_pages["results"]:
         
