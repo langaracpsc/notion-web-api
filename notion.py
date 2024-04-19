@@ -226,12 +226,44 @@ def updateDataFromNotion(writeLocation="data/"):
         
     # with open(f"{writeLocation}/json/execs_notion.json", "w", encoding="utf-8") as fi:
     #     fi.write(json.dumps(exec_pages, indent=4))
+    
+    # sort the output
+    presidents:list[LCSCExecutive] = [] # list in case we ever have a copresident
+    vps:list[LCSCExecutive] = []
+    directors:list[LCSCExecutive] = []
+    other:list[LCSCExecutive] = []
+    
+    for e in executives:
         
+        r = str(e.roles).lower()
+        
+        if "President" in str(e.roles) and "Vice" not in str(e.roles):
+            presidents.append(e)
+        
+        elif "Vice" in str(e.roles):
+            vps.append(e)
+        
+        elif "Director" in str(e.roles):
+            directors.append(e)
+        
+        else:
+            other.append(e)
+            
+    presidents = sorted(presidents, key=lambda e: e.name)
+    vps = sorted(vps, key=lambda e: e.name)
+    directors = sorted(directors, key=lambda e: e.roles[0] + e.name)
+    other = sorted(other, key=lambda e: e.name)
+            
+    executives_ordered:list[LCSCExecutive] = []
+    executives_ordered.extend(presidents)
+    executives_ordered.extend(vps)
+    executives_ordered.extend(directors)
+    executives_ordered.extend(other)
 
     with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
         out = []
         
-        for e in executives:
+        for e in executives_ordered:
             out.append(e.model_dump())
         
         fi.write(json.dumps(out, indent=4))
