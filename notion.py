@@ -5,7 +5,6 @@ from os import environ
 from os.path import exists
 import json
 import requests
-from datetime import datetime
 
 from notion_client import Client
 from pydantic import BaseModel

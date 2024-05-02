@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 import os
-from os.path import exists
 import json
 
 from dotenv import load_dotenv
@@ -15,20 +14,16 @@ from notion import LCSCExecutive
 
 app = FastAPI(
     title="LCSC Executives API",
-    description="Gets LCSC executives from the Notion database.",
+    description="Gets LCSC executives from the internal Notion database.",
     redoc_url="/"
     )
-
-origins = [
-    "*",
-]
 
 # gzip images so we don't get ddosed (might need more optimizations / move to cloudflare)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,7 +33,7 @@ DATA_DIRECTORY = "./data"
 
 @app.get(
     "/executives/all", 
-    summary="Returns a list of all LCSC executives",
+    summary="Returns a list of all LCSC executives.",
 )
 async def executives_all() -> list[LCSCExecutive]:
     # get all executives from local json file
@@ -48,7 +43,7 @@ async def executives_all() -> list[LCSCExecutive]:
 
 @app.get(
     "/executives/active", 
-    summary="Returns a list of all non-retired LCSC executives",
+    summary="Returns a list of all non-retired LCSC executives.",
 )
 async def executives_active() -> list[LCSCExecutive]:
     path = f"{DATA_DIRECTORY}/json/execs_export.json"
