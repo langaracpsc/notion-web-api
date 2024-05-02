@@ -65,6 +65,24 @@ async def executives_active() -> list[LCSCExecutive]:
     return new_arr
 
 @app.get(
+    "/executives/retired",
+    summary="Returns a list of all retired LCSC executives.",
+)
+async def executives_retired() -> list[LCSCExecutive]:
+    path = f"{DATA_DIRECTORY}/json/execs_export.json"
+        
+    with open(path, "r") as fi:
+        data = json.loads(fi.read())
+        
+    new_arr = []
+    
+    for e in data:
+        if e["current_status"] == "Retired":
+            new_arr.append(e)
+    
+    return new_arr
+
+@app.get(
     "/executives/image/{filename}", 
     summary="Returns the image with the given filename.",
 )
