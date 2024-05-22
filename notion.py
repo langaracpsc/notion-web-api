@@ -212,7 +212,7 @@ def updateDataFromNotion(writeLocation="data/"):
             file_url:str = p["Profile Picture"]["files"][0]["file"]["url"]
             file_extension:str = file_name.split('.')[-1]
             
-            assert file_name.split(".")[-1] in ["webp", "jpg", "png", "jpeg", ".gif"]
+            assert file_name.split(".")[-1].lower() in ["webp", "jpg", "png", "jpeg", ".gif"]
             
             # don't actually request the image if we know it hasn't changed
             if not stale_data:
