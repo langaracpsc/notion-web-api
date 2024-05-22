@@ -12,7 +12,7 @@ from pydantic import BaseModel
 class LCSCExecutive(BaseModel):
     # information on the executive
     name: str
-    full_name: str
+    full_name: str | None
     pronouns: str | None
     profile_picture: str | None
     social_media_links: dict[str, str]
@@ -21,9 +21,9 @@ class LCSCExecutive(BaseModel):
     # information on their term with the club
     roles: list[str]
     prior_roles: list[str] | None
-    first_term: str
+    first_term: str | None
     last_term: str | None
-    current_status: str
+    current_status: str | None
     
     # meta information
     student_id: str | None
