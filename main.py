@@ -24,7 +24,7 @@ if __name__ == "__main__":
     def refresh_from_notion():
         
         updateDataFromNotion()
-        schedule.every(5).minutes.do(updateDataFromNotion)
+        schedule.every(1).minutes.do(updateDataFromNotion)
 
         while True:
             schedule.run_pending()
