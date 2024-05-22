@@ -26,7 +26,7 @@ class LCSCExecutive(BaseModel):
     current_status: str
     
     # meta information
-    student_id: str
+    student_id: str | None
     last_updated: str
     
     model_config = {
