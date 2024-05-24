@@ -194,7 +194,7 @@ def updateDataFromNotion(writeLocation="data/"):
         if current_roles != None:
             current_roles = [notion_id_to_role_name[x] for x in current_roles]
         else:
-            current_roles = []:
+            current_roles = []
         
         if past_roles != None:
             past_roles = [notion_id_to_role_name[x] for x in past_roles]
