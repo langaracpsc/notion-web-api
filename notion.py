@@ -163,7 +163,6 @@ def updateDataFromNotion(writeLocation="data/"):
     
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    print("date and time =", dt_string)
     
     if all_stale:
         print(f"[{dt_string}]: No new data found from Notion.")
