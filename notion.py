@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 
@@ -160,11 +161,15 @@ def updateDataFromNotion(writeLocation="data/"):
         if not all_stale:
             break
     
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    print("date and time =", dt_string)
+    
     if all_stale:
-        print("No new data found from Notion.")
+        print(f"[{dt_string}]: No new data found from Notion.")
         return
     else:
-        print("New data found in Notion: recreating cache:")
+        print(f"[{dt_string}]: New data found in Notion: recreating cache:")
 
     for page in exec_pages["results"]:
         
