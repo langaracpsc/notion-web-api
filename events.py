@@ -174,7 +174,7 @@ def updateDataFromNotion(writeLocation="data/"):
     events.reverse()
     
     # Write updated data to JSON file
-    with open(cache_path, "w") as fi:
+    with open(cache_path, "w+") as fi:
         out = [e.model_dump() for e in events]
         fi.write(json.dumps(out, indent=4))
 
