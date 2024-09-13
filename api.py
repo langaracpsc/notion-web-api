@@ -29,6 +29,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+def is_safe_path(basedir, path, follow_symlinks=True):
+    # Resolve the absolute path
+    if follow_symlinks:
+        resolved_path = os.path.realpath(path)
+    else:
+        resolved_path = os.path.abspath(path)
+
+    # Ensure the resolved path is within the base directory
+    return resolved_path.startswith(basedir)
+
+
+
+
+
+
+
+
 DATA_DIRECTORY = "./data"
 
 @app.get(
@@ -79,9 +98,9 @@ async def executives_retired() -> list[LCSCExecutive]:
 
 @app.get(
     "/executives/image/{filename}", 
-    summary="Returns the image with the given filename.",
+    summary="Returns the executive image with the given filename.",
 )
-async def executives_all(filename):
+async def executives_image(filename):
     
     path = f"{DATA_DIRECTORY}/images/{filename}"
     
@@ -91,3 +110,29 @@ async def executives_all(filename):
     response = FileResponse(path)
     return response
 
+@app.get(
+    "/events/all",
+    summary="Returns all events organized by the LCSC."
+)
+async def events_all():
+    path = f"{DATA_DIRECTORY}/json/events_export.json"
+    response = FileResponse(path)
+    return response
+
+@app.get(
+    "/events/image/{filename}",
+    summary="Returns the event image with the given filename.",
+)
+async def event_image(filename):
+    
+    base_dir = os.path.realpath(f"{DATA_DIRECTORY}/event_images/")
+    path = os.path.join(base_dir, filename)
+    if not is_safe_path(base_dir, path) or not os.path.isfile(path):
+        return 404
+    
+        
+    if not os.path.isfile(path):
+        return 404
+    
+    response = FileResponse(path)
+    return response

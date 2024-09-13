@@ -6,7 +6,8 @@ import schedule
 import time
 import threading
 
-from notion import updateDataFromNotion
+from notion import updateDataFromNotion as import1
+from events import updateDataFromNotion as import2
 
 
 if __name__ == "__main__":
@@ -23,8 +24,10 @@ if __name__ == "__main__":
 
     def refresh_from_notion():
         
-        updateDataFromNotion()
-        schedule.every(1).minutes.do(updateDataFromNotion)
+        import1()
+        import2()
+        schedule.every(5).minutes.do(import1)
+        schedule.every(5).minutes.do(import2)
 
         while True:
             schedule.run_pending()

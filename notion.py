@@ -165,10 +165,10 @@ def updateDataFromNotion(writeLocation="data/"):
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     
     if all_stale:
-        print(f"[{dt_string}]: No new data found from Notion.")
+        print(f"[{dt_string}]: No new executive data found from Notion.")
         return
     else:
-        print(f"[{dt_string}]: New data found in Notion: recreating cache:")
+        print(f"[{dt_string}]: New executive data found in Notion: recreating cache:")
 
     for page in exec_pages["results"]:
         
