@@ -7,7 +7,7 @@ import time
 import threading
 
 from notion import updateDataFromNotion as import1
-from eventseeker import updateDataFromNotion as import2
+from events import updateDataFromNotion as import2
 
 
 if __name__ == "__main__":
