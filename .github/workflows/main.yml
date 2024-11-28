@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - 'main'
+  release:
+    types: [created]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -25,26 +26,39 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+      
+      - name: Build and push backend
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: Dockerfile-backend
           platforms: linux/amd64,linux/arm64
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/langaracpsc/notion-web-api:latest
+            ghcr.io/langaracpsc/notion-web-api-backend:latest
 
-  deploy: 
+      - name: Build and push api
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile-api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/langaracpsc/notion-web-api-fastapi:latest
+
+  deployment: 
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Deploy docker package on LCSC server
         uses: fjogeleit/http-request-action@v1
         with:
-            url: 'https://watchtower.langaracs.ca/v1/update'
-            method: 'GET'
-            bearerToken: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
-            timeout: 120000
-        
+          url: 'https://watchtower.langaracs.ca/v1/update'
+          method: 'GET'
+          bearerToken: ${{ secrets.WATCHTOWER_HTTP_API_TOKEN }}
+          timeout: 60000
