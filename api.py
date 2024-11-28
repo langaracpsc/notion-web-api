@@ -121,7 +121,8 @@ async def executives_image(filename):
     if not os.path.isfile(path):
         return 404
     
-    response = FileResponse(path)
+    
+    response = FileResponse(path, headers={"Accept-Encoding": "gzip"})
     return response
 
 @app.get(
@@ -148,7 +149,7 @@ async def event_image(filename):
     if not os.path.isfile(path):
         return 404
     
-    response = FileResponse(path)
+    response = FileResponse(path, headers={"Accept-Encoding": "gzip"})
     return response
 
 if __name__ == "__main__":
