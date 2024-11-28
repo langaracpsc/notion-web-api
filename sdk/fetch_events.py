@@ -88,6 +88,7 @@ def updateDataFromNotion(writeLocation="data/"):
             full_image_path = f"data/event_images/{event_id}.{ext}"
             if exists(full_image_path):
                 os.remove(full_image_path)
+            logger.info(f"Removed image for event {event_id} at {full_image_path}.")  # Log removal
     
     for page in event_pages["results"]:
         page_updated = False

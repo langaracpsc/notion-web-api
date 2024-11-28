@@ -105,6 +105,7 @@ def updateDataFromNotion(writeLocation="data/"):
             full_image_path = f"{writeLocation}/exec_images/{student_id}.{ext}"
             if exists(full_image_path):
                 os.remove(full_image_path)
+                logger.info(f"Removed image for executive {student_id} at {full_image_path}.")  # Log removal
     
     
     for page in exec_pages["results"]:
