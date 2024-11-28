@@ -1,15 +1,14 @@
 FROM python:3.13
 
-WORKDIR /code
 
 # install requirements
-COPY requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 
 # copy all files
-COPY /sdk /code/sdk
-COPY api.py /code/api.py
+COPY /sdk /sdk
+COPY api.py api.py
 
 
 CMD  ["fastapi", "run", "api.py", "--port", "5000"]
