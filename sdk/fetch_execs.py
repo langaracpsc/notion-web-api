@@ -11,7 +11,7 @@ import requests
 from notion_client import Client
 from pydantic import BaseModel
 
-from sdk.helpers import create_human_readable_date, image_filename_to_url, propTextExtractor, multiplePropTextExtractor
+from sdk.helpers import attempt_compress_image, create_human_readable_date, image_filename_to_url, propTextExtractor, multiplePropTextExtractor
 
 logger = logging.getLogger("lcsc.execs")
 
@@ -145,10 +145,13 @@ def updateDataFromNotion(writeLocation="data/"):
             
             # don't actually request the image if we know it hasn't changed
             if not stale_data:
-                with open(f"data/exec_images/{student_id}.{file_extension}", "wb") as fi:
+                file = f"data/exec_images/{student_id}.{file_extension}"
+                with open(file, "wb") as fi:
                                 
                     r = requests.get(file_url)
                     fi.write(r.content)            
+            
+                attempt_compress_image(file)
             
             executive_images[student_id] = image_filename_to_url("executives/images", f"{student_id}.{file_extension}")
         else:

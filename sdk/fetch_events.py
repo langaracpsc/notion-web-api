@@ -7,7 +7,7 @@ import json
 from notion_client import Client
 from pydantic import BaseModel
 import requests
-from sdk.helpers import create_human_readable_date, image_filename_to_url, propTextExtractor, multiplePropTextExtractor, create_folder_if_not_existing
+from sdk.helpers import attempt_compress_image, create_human_readable_date, image_filename_to_url, propTextExtractor, multiplePropTextExtractor, create_folder_if_not_existing
 import logging
 
 from sdk.models import LCSCEvent
@@ -110,9 +110,12 @@ def updateDataFromNotion(writeLocation="data/"):
             assert file_name.split(".")[-1].lower() in ["webp", "jpg", "png", "jpeg", ".gif"]
             
             if page_updated:
-                with open(f"data/event_images/{page_id}.{file_extension}", "wb") as fi:          
+                file = f"data/event_images/{page_id}.{file_extension}"
+                with open(file, "wb") as fi:          
                     r = requests.get(file_url)
                     fi.write(r.content)
+                    
+                attempt_compress_image(file)
             
             event_images[page_id] = image_filename_to_url("events/images", f"{page_id}.{file_extension}")
         else:

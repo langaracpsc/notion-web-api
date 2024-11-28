@@ -2,6 +2,8 @@ from datetime import datetime
 from os import makedirs
 import os
 from os.path import exists
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = None # pil is paranoid and thinks large images are a zip bomb
 
 # Iterate over Notion pages and extract data
 def propTextExtractor(property:dict) -> str | None:
@@ -91,4 +93,24 @@ def image_filename_to_url(api_route:str, filename:str):
         path += "/"
     
     return f"{path}{api_route}/{filename}"
+
+# take care to only call this once per image (ie right after you save it)
+def attempt_compress_image(filepath:str):
+    image = Image.open(filepath)
+    
+    i_width, i_height = image.size
+    
+    if i_width > 2000 or i_height > 2000:
+        # Calculate the new size while maintaining the aspect ratio
+        if i_width > i_height:
+            new_width = 2000
+            new_height = int((i_height * new_width) / i_width)
+        else:
+            new_height = 2000
+            new_width = int((i_width * new_height) / i_height)
         
+        # Resize the image
+        image = image.resize((new_width, new_height), Image.LANCZOS)
+    
+    # Save the image with optimized settings
+    image.save(filepath, optimize=True, quality=95)

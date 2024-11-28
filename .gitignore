@@ -3,7 +3,7 @@ __pycache__/
 *$py.class
 
 **/data
-**/venv
+**/.venv
 *.env
 
 .github/workflows/main.yml

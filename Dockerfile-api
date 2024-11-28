@@ -1,8 +1,11 @@
-FROM python:3.13
+FROM python:3.13-slim
 
 
 # install requirements
 COPY requirements.txt requirements.txt
+# this is awful but the build time inprovements
+RUN sed -i 's/fastapi\[standard\]/fastapi/g' requirements.txt
+
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 
