@@ -1,0 +1,31 @@
+services:
+  notion-web-api-backend:
+    build:
+      context: /
+      dockerfile: Dockerfile-backend
+    #image: "ghcr.io/langaracpsc/notion-web-api-backend:latest"
+    volumes:
+      - notion-web-api-data:/data
+    environment:
+      NOTION_API_TOKEN: ${NOTION_API_TOKEN}
+      API_URL: ${API_URL}
+
+
+  notion-web-api-fastapi:
+    depends_on:
+      - notion-web-api-backend
+    ports:
+      - '5000:5000'
+    build:
+      context: /
+      dockerfile: Dockerfile-api
+    #image: "ghcr.io/langaracpsc/notion-web-api-fastapi:latest"
+    volumes:
+      - notion-web-api-data:/data
+    environment:
+      NOTION_API_TOKEN: ${NOTION_API_TOKEN}
+      API_URL: ${API_URL}
+
+
+volumes:
+  notion-web-api-data:

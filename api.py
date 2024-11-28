@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
@@ -9,8 +10,21 @@ import json
 
 from dotenv import load_dotenv
 load_dotenv()
+from os import environ
 
-from notion import LCSCExecutive
+import sys
+sys.path.append('./code')
+from sdk.models import LCSCEvent, LCSCExecutive
+
+logger = logging.getLogger("lcsc.api")
+
+if "NOTION_API_TOKEN" not in environ:
+    logger.error("No Notion API token found in environment variables.")
+    sys.exit(1)
+
+if "API_URL" not in environ:
+    logger.error("Please provide the URL of the API as an environment variable.")
+    sys.exit(1)
 
 app = FastAPI(
     title="LCSC Executives API",
@@ -97,12 +111,12 @@ async def executives_retired() -> list[LCSCExecutive]:
     return new_arr
 
 @app.get(
-    "/executives/image/{filename}", 
+    "/executives/images/{filename}", 
     summary="Returns the executive image with the given filename.",
 )
 async def executives_image(filename):
     
-    path = f"{DATA_DIRECTORY}/images/{filename}"
+    path = f"{DATA_DIRECTORY}/exec_images/{filename}"
     
     if not os.path.isfile(path):
         return 404
@@ -114,13 +128,13 @@ async def executives_image(filename):
     "/events/all",
     summary="Returns all events organized by the LCSC."
 )
-async def events_all():
+async def events_all() -> list[LCSCEvent]:
     path = f"{DATA_DIRECTORY}/json/events_export.json"
     response = FileResponse(path)
     return response
 
 @app.get(
-    "/events/image/{filename}",
+    "/events/images/{filename}",
     summary="Returns the event image with the given filename.",
 )
 async def event_image(filename):
@@ -136,3 +150,7 @@ async def event_image(filename):
     
     response = FileResponse(path)
     return response
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)

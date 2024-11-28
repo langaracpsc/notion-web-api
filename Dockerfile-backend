@@ -1,0 +1,15 @@
+FROM python:3.13-slim
+
+# install requirements
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt --no-cache-dir option 
+
+
+# copy all files
+COPY /sdk /sdk
+COPY backend.py backend.py
+
+# so that it stops in a prompt manner
+STOPSIGNAL SIGINT 
+
+ENTRYPOINT ["python", "backend.py"]
