@@ -71,6 +71,24 @@ def updateDataFromNotion(writeLocation="data/"):
     # check to see if any updates actually happened
     
     
+    # Create a set of current event IDs from Notion
+    current_event_ids = {page["id"] for page in event_pages["results"]}
+    
+    # Check for deleted events in cached data
+    cached_event_ids = {event["id"] for event in cached_data}
+    deleted_event_ids = cached_event_ids - current_event_ids
+    
+    # Remove any deleted events from cached data and delete associated images
+    for event_id in deleted_event_ids:
+        # Remove event from cached data
+        cached_data = [event for event in cached_data if event["id"] != event_id]
+        # Delete associated image if it exists
+        image_path = f"data/event_images/{event_id}.*"  # Adjust the path as necessary
+        for ext in ['webp', 'jpg', 'png', 'jpeg', 'gif']:
+            full_image_path = f"data/event_images/{event_id}.{ext}"
+            if exists(full_image_path):
+                os.remove(full_image_path)
+    
     for page in event_pages["results"]:
         page_updated = False
         found = False
