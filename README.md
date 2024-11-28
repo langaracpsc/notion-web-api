@@ -13,7 +13,7 @@ For development,
 - install requirements `pip install -r requirements.txt`
 - create and populate `.env` with `NOTION_API_TOKEN` and `API_URL`
     - `NOTION_API_TOKEN` is a token from a Notion integration. Also make sure to give it access to the relevant notion pages.
-    - `API_URL` is the root url of the api (use `localhost:port` when developing and the real root url in production)
+    - `API_URL` is the root url of the api (use `localhost:5000` when developing and the real root url in production)
 run `python backend.py` and `python api.py`
 
 For production:
