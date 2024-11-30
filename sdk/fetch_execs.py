@@ -23,6 +23,8 @@ ROLES_DB_ID = "64911354b5e24d639c00c3d39e54276c"
 # class so that if we need to change a table column in the notion db it doesn't take forever
 class t:
     linkedin = "LinkedIn"
+    instagram = "Instagram"
+    website = "Website"
 
 def updateDataFromNotion(writeLocation="data/"):
     
