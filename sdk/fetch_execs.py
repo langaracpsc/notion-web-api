@@ -69,10 +69,15 @@ def updateDataFromNotion(writeLocation="data/"):
         last_updated = page["last_edited_time"]
         student_id = propTextExtractor(p["Student ID"]),
         
+        # Check if student_id is null or doesn't exist
+        if not student_id[0]:  # If student_id is None or empty
+            logger.warning(f"Skipping entry due to missing student_id for page: {page['id']}")
+            continue  # Skip this entry
+        
         # don't go through the trouble of everything if the page hasn't changed
         # right now everything is simply downloading the exec images
         for exec in local_data:
-            if exec["student_id"] == student_id[0]:
+            if "student_id" in exec and exec["student_id"] == student_id[0]:  # Check if key exists
                 if last_updated != exec["last_updated"]:
                     all_stale = False
                     break
@@ -117,12 +122,17 @@ def updateDataFromNotion(writeLocation="data/"):
         last_updated = page["last_edited_time"]
         student_id = propTextExtractor(p["Student ID"]),
         
+        # Check if student_id is null or doesn't exist
+        if not student_id[0]:  # If student_id is None or empty
+            logger.warning(f"Skipping entry due to missing student_id for page: {page['id']}")
+            continue  # Skip this entry
+        
         # don't go through the trouble of everything if the page hasn't changed
         # right now everything is simply downloading the exec images
         stale_data = False
         
         for exec in local_data:
-            if exec["student_id"] == student_id[0]:
+            if "student_id" in exec and exec["student_id"] == student_id[0]:  # Check if key exists
                 if last_updated == exec["last_updated"]:
                     stale_data = True
                     break
