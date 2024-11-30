@@ -97,13 +97,13 @@ def updateDataFromNotion(writeLocation="data/"):
     
 
     # Check for deleted executives in cached data
-    cached_event_ids = {exec.student_id for exec in local_data}
+    cached_event_ids = {exec["student_id"] for exec in local_data if "student_id" in exec}
     current_event_ids = {page["id"] for page in exec_pages["results"]}
     deleted_event_ids = cached_event_ids - current_event_ids
     # Remove deleted executives from cached data and delete associated images
     for student_id in deleted_event_ids:
         # Remove executive from cached data
-        local_data = [exec for exec in local_data if exec.student_id != student_id]
+        local_data = [exec for exec in local_data if exec["student_id"] != student_id]
         # Delete associated image if it exists
         image_path = f"{writeLocation}/exec_images/{student_id}.*"  # Adjusted to use writeLocation
         for ext in ['webp', 'jpg', 'png', 'jpeg', 'gif']:
