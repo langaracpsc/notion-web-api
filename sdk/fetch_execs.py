@@ -67,17 +67,17 @@ def updateDataFromNotion(writeLocation="data/"):
         p = page["properties"]
         
         last_updated = page["last_edited_time"]
-        student_id = propTextExtractor(p["Student ID"]),
+        page_id = page["id"]  # Use page_id instead of student_id
         
-        # Check if student_id is null or doesn't exist
-        if not student_id[0]:  # If student_id is None or empty
-            logger.warning(f"Skipping entry due to missing student_id for page: {page['id']}")
+        # Check if page_id is null or doesn't exist
+        if not page_id:  # If page_id is None or empty
+            logger.warning(f"Skipping entry due to missing page_id for page: {page['id']}")
             continue  # Skip this entry
         
         # don't go through the trouble of everything if the page hasn't changed
         # right now everything is simply downloading the exec images
         for exec in local_data:
-            if "student_id" in exec and exec["student_id"] == student_id[0]:  # Check if key exists
+            if "page_id" in exec and exec["page_id"] == page_id:  # Check if key exists
                 if last_updated != exec["last_updated"]:
                     all_stale = False
                     break
@@ -97,20 +97,20 @@ def updateDataFromNotion(writeLocation="data/"):
     
 
     # Check for deleted executives in cached data
-    cached_event_ids = {exec["student_id"] for exec in local_data if "student_id" in exec}
+    cached_event_ids = {exec["page_id"] for exec in local_data if "page_id" in exec}
     current_event_ids = {page["id"] for page in exec_pages["results"]}
     deleted_event_ids = cached_event_ids - current_event_ids
     # Remove deleted executives from cached data and delete associated images
-    for student_id in deleted_event_ids:
+    for page_id in deleted_event_ids:
         # Remove executive from cached data
-        local_data = [exec for exec in local_data if exec["student_id"] != student_id]
+        local_data = [exec for exec in local_data if exec["page_id"] != page_id]
         # Delete associated image if it exists
-        image_path = f"{writeLocation}/exec_images/{student_id}.*"  # Adjusted to use writeLocation
+        image_path = f"{writeLocation}/exec_images/{page_id}.*"  # Adjusted to use page_id
         for ext in ['webp', 'jpg', 'png', 'jpeg', 'gif']:
-            full_image_path = f"{writeLocation}/exec_images/{student_id}.{ext}"
+            full_image_path = f"{writeLocation}/exec_images/{page_id}.{ext}"
             if exists(full_image_path):
                 os.remove(full_image_path)
-                logger.info(f"Removed image for executive {student_id} at {full_image_path}.")  # Log removal
+                logger.info(f"Removed image for executive {page_id} at {full_image_path}.")  # Log removal
     
     
     for page in exec_pages["results"]:
@@ -119,21 +119,20 @@ def updateDataFromNotion(writeLocation="data/"):
         
         p = page["properties"]
         
-        last_updated = page["last_edited_time"]
-        student_id = propTextExtractor(p["Student ID"]),
+        page_last_updated = page["last_edited_time"]
+        page_id = page["id"]  # Use page_id instead of student_id
         
-        # Check if student_id is null or doesn't exist
-        if not student_id[0]:  # If student_id is None or empty
-            logger.warning(f"Skipping entry due to missing student_id for page: {page['id']}")
+        # Skip entry if page_id is not valid
+        if not page_id:
+            logger.warning(f"Skipping entry due to missing page_id for page: {page['id']}")
             continue  # Skip this entry
         
-        # don't go through the trouble of everything if the page hasn't changed
-        # right now everything is simply downloading the exec images
+        # Check if the page has been updated
         stale_data = False
         
         for exec in local_data:
-            if "student_id" in exec and exec["student_id"] == student_id[0]:  # Check if key exists
-                if last_updated == exec["last_updated"]:
+            if exec.get("id") == page_id:  # Compare with page_id
+                if page_last_updated == exec["last_updated"]:
                     stale_data = True
                     break
         
@@ -161,8 +160,6 @@ def updateDataFromNotion(writeLocation="data/"):
         # TODO: add more social media links here
         
         # download the image for each exec, if available
-        student_id = propTextExtractor(p["Student ID"])
-        
         if (p["Candid"]["files"] != []):
             file_name:str = p["Candid"]["files"][0]["name"]
             file_url:str = p["Candid"]["files"][0]["file"]["url"]
@@ -172,17 +169,16 @@ def updateDataFromNotion(writeLocation="data/"):
             
             # don't actually request the image if we know it hasn't changed
             if not stale_data:
-                file = f"data/exec_images/{student_id}.{file_extension}"
+                file = f"data/exec_images/{page_id}.{file_extension}"
                 with open(file, "wb") as fi:
-                                
                     r = requests.get(file_url)
                     fi.write(r.content)            
-            
+                
                 attempt_compress_image(file)
             
-            executive_images[student_id] = image_filename_to_url("executives/images", f"{student_id}.{file_extension}")
+            executive_images[page_id] = image_filename_to_url("executives/images", f"{page_id}.{file_extension}")
         else:
-            executive_images[student_id] = None
+            executive_images[page_id] = None
         
         
         
@@ -190,7 +186,7 @@ def updateDataFromNotion(writeLocation="data/"):
             name =              propTextExtractor(p["Name"]),
             full_name =         propTextExtractor(p["Legal Name"]),
             pronouns =          propTextExtractor(p["Pronouns"]),
-            profile_picture =   executive_images[student_id],
+            profile_picture =   executive_images[page_id],
             social_media_links= sc_links,
             bio =               propTextExtractor(p["Bio"]),
             
@@ -200,8 +196,8 @@ def updateDataFromNotion(writeLocation="data/"):
             last_term =         propTextExtractor(p["Last Term"]),
             current_status =    propTextExtractor(p["Status"]),
             
-            student_id =        propTextExtractor(p["Student ID"]),
-            last_updated =      page["last_edited_time"]
+            id =                page_id,  # Use page_id as id
+            last_updated =      page_last_updated
         )
             
         executives.append(e)

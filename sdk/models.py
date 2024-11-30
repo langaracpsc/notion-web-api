@@ -18,7 +18,7 @@ class LCSCExecutive(BaseModel):
     current_status: str | None
     
     # meta information
-    student_id: str | None
+    id: str
     last_updated: str
     
     model_config = {
@@ -42,7 +42,7 @@ class LCSCExecutive(BaseModel):
                     "first_term" : "2022 Fall",
                     "last_term" : None,
                     "current_status" : "Active",
-                    "student_id" : "100399310",
+                    "id" : "100399310",
                     "last_updated" : "2024-04-18T11:31:00.000Z"
                 }
             ]
