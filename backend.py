@@ -38,20 +38,32 @@ if "API_URL" not in environ:
 
 WRITE_LOCATION = "data/"
 
-c = 0
 
-c += create_folder_if_not_existing(WRITE_LOCATION)
-c += create_folder_if_not_existing(f"{WRITE_LOCATION}/event_images/")
-c += create_folder_if_not_existing(f"{WRITE_LOCATION}/exec_images/")
-c += create_folder_if_not_existing(f"{WRITE_LOCATION}/json/")
+if create_folder_if_not_existing(WRITE_LOCATION):
+    logger.info(f"Creating directory at {WRITE_LOCATION}")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}/event_images/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}/event_images/")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}/exec_images/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}/exec_images/")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}/json/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}/json/")
 
-if c > 0:
-    logger.info(f"Created {c} directories.")
 
-fetch_events()
-fetch_execs()
-schedule.every(REFRESH_TIME).minutes.do(fetch_events)
-schedule.every(REFRESH_TIME).minutes.do(fetch_execs)
+def fetch_events_wrapper():
+    if fetch_events():
+        updateDependencies()
+
+def fetch_execs_wrapper():
+    if fetch_execs():
+        updateDependencies()
+
+def updateDependencies():
+    pass
+
+fetch_events_wrapper()
+fetch_execs_wrapper()
+schedule.every(REFRESH_TIME).minutes.do(fetch_events_wrapper)
+schedule.every(REFRESH_TIME).minutes.do(fetch_execs_wrapper)
 
 while True:
     schedule.run_pending()

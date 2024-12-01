@@ -26,7 +26,7 @@ class t:
     instagram = "Instagram"
     website = "Website"
 
-def updateDataFromNotion(writeLocation="data/"):
+def updateDataFromNotion(writeLocation="data/") -> bool:
     
     local_data:list[LCSCExecutive] = []
     if exists(f"{writeLocation}/json/execs_export.json"):
@@ -92,7 +92,7 @@ def updateDataFromNotion(writeLocation="data/"):
     
     if all_stale:
         logger.info("No new executive data found in Notion.")
-        return
+        return False
     
 
     update_count = 0
@@ -252,6 +252,7 @@ def updateDataFromNotion(writeLocation="data/"):
         fi.write(json.dumps(out, indent=4))
     
     logger.info(f"{update_count} executive updates found and saved locally.")
+    return True
 
 
 if __name__ == "__main__":

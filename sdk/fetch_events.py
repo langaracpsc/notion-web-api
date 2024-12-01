@@ -24,7 +24,7 @@ class LCSCRecurringEvent(BaseModel):
 EVENTS_DB_ID = "0260157bf43c4c96aefec1764d428030"
 RECURRING_EVENTS_LIST_DB_ID = "47bac84297d84de781b875be50020ef0"
 
-def updateDataFromNotion(writeLocation="data/"):
+def updateDataFromNotion(writeLocation="data/") -> bool:
 
     # Load cached data if exists
     cached_data:list[LCSCEvent] = []
@@ -160,7 +160,7 @@ def updateDataFromNotion(writeLocation="data/"):
     
     if update_count == 0:
         logger.info("No new event data found in Notion.")
-        return
+        return False
     
     def extract(e): return e.event_start_date if e.event_start_date != None else ""
     events.sort(key=extract)
@@ -172,6 +172,7 @@ def updateDataFromNotion(writeLocation="data/"):
         fi.write(json.dumps(out, indent=4))
 
     logger.info(f"{update_count} event updates found in Notion and saved locally.")
+    return True
 
 
 
