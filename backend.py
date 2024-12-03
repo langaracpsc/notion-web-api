@@ -10,7 +10,7 @@ from sdk.helpers import create_folder_if_not_existing
 from sdk.fetch_events import updateDataFromNotion as fetch_events
 from sdk.fetch_execs import updateDataFromNotion as fetch_execs
 
-REFRESH_TIME = 5  # minutes
+REFRESH_TIME = 60  # seconds
 
 # Create a custom handler
 console_handler = logging.StreamHandler()
@@ -25,7 +25,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 
 
-logger.info(f"Launching Notion downloader backend service. Pulling new data now and every {REFRESH_TIME} minutes.")
+logger.info(f"Launching Notion downloader backend service. Pulling new data now and every {REFRESH_TIME} seconds.")
 
 load_dotenv()
 if "NOTION_API_TOKEN" not in environ:
@@ -41,29 +41,44 @@ WRITE_LOCATION = "data/"
 
 if create_folder_if_not_existing(WRITE_LOCATION):
     logger.info(f"Creating directory at {WRITE_LOCATION}")
-if create_folder_if_not_existing(f"{WRITE_LOCATION}/event_images/"):
-    logger.info(f"Creating directory at {WRITE_LOCATION}/event_images/")
-if create_folder_if_not_existing(f"{WRITE_LOCATION}/exec_images/"):
-    logger.info(f"Creating directory at {WRITE_LOCATION}/exec_images/")
-if create_folder_if_not_existing(f"{WRITE_LOCATION}/json/"):
-    logger.info(f"Creating directory at {WRITE_LOCATION}/json/")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}event_images/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}event_images/")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}exec_images/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}exec_images/")
+if create_folder_if_not_existing(f"{WRITE_LOCATION}json/"):
+    logger.info(f"Creating directory at {WRITE_LOCATION}json/")
 
+events_log = 0
+execs_log = 0
+UPDATE_FREQUENCY = 20
 
 def fetch_events_wrapper():
+    global events_log
     if fetch_events():
         updateDependencies()
+    else:
+        if events_log >= UPDATE_FREQUENCY:
+            logger.info("No new event updates found.")
+            events_log = 0
+        events_log += 1
 
 def fetch_execs_wrapper():
+    global execs_log
     if fetch_execs():
         updateDependencies()
+    else:
+        if execs_log >= UPDATE_FREQUENCY:
+            logger.info("No new executive updates found.")
+            execs_log = 0
+        execs_log += 1
 
 def updateDependencies():
     pass
 
 fetch_events_wrapper()
 fetch_execs_wrapper()
-schedule.every(REFRESH_TIME).minutes.do(fetch_events_wrapper)
-schedule.every(REFRESH_TIME).minutes.do(fetch_execs_wrapper)
+schedule.every(REFRESH_TIME).seconds.do(fetch_events_wrapper)
+schedule.every(REFRESH_TIME).seconds.do(fetch_execs_wrapper)
 
 while True:
     schedule.run_pending()

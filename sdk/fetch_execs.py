@@ -1,7 +1,10 @@
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+load_dotenv()
 import logging
+
+from datetime import datetime, timezone
 
 from os import environ
 from os.path import exists
@@ -9,13 +12,12 @@ import json
 import requests
 
 from notion_client import Client
-from pydantic import BaseModel
 
 from sdk.helpers import attempt_compress_image, create_human_readable_date, image_filename_to_url, propTextExtractor, multiplePropTextExtractor
 
 logger = logging.getLogger("lcsc.execs")
 
-from sdk.models import LCSCExecutive
+from sdk.models import LCSCExecutive, LCSCExecutiveContainer, PageMetadata
 
 EXECUTIVES_DB_ID = "23dbd8f8f9d84739aaf9c1f98c7cc842"
 ROLES_DB_ID = "64911354b5e24d639c00c3d39e54276c"
@@ -24,26 +26,62 @@ ROLES_DB_ID = "64911354b5e24d639c00c3d39e54276c"
 class t:
     linkedin = "LinkedIn"
     instagram = "Instagram"
+    github = "Github"
     website = "Website"
 
-def updateDataFromNotion(writeLocation="data/") -> bool:
     
-    local_data:list[LCSCExecutive] = []
-    if exists(f"{writeLocation}/json/execs_export.json"):
-        with open(f"{writeLocation}/json/execs_export.json", "r") as fi:
-            local_data = json.loads(fi.read())    
+    
 
 
-    load_dotenv()
+def updateDataFromNotion(writeLocation="data/") -> bool:
     if "NOTION_API_TOKEN" not in environ:
         raise Exception("Please provide a Notion integration token.")
-
+    
+    local_data:LCSCExecutiveContainer|None = None
+    if exists(f"{writeLocation}/json/execs_export.json"):
+        with open(f"{writeLocation}/json/execs_export.json", "r") as fi:
+            data = fi.read()
+            if data:
+                # try:
+                local_data = LCSCExecutiveContainer.model_validate_json(data)
+                # except:
+                #     logger.error("Failed to validate existing json")
+    
+    
     notion = Client(auth=environ.get("NOTION_API_TOKEN"))
-
-    # db = notion.databases.retrieve(database_id)
+    
+    
+    # we get the tables first because they contain a lot less data and return faster
+    # we can check the last_edited_time from here and exit early if there are no new updates
+    roles_table = notion.databases.retrieve(ROLES_DB_ID)
+    exec_table = notion.databases.retrieve(EXECUTIVES_DB_ID)
+    
+    
+    if local_data:
+        there_are_new_edits = False
+        
+        if roles_table['last_edited_time'] != local_data.metadata.roles_last_edited:
+            there_are_new_edits = True
+        
+        if exec_table['last_edited_time'] != local_data.metadata.execs_last_edited:
+            there_are_new_edits = True
+    
+        if not there_are_new_edits:
+            current_time = datetime.now(timezone.utc)
+            iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            local_data.metadata.last_checked = iso_timestamp
+            
+            with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
+                fi.write(local_data.model_dump_json(indent=4))
+            
+            return False
+            
+    # if we find something then announce it
+    logger.info("Executive updates found.")
 
     role_pages = notion.databases.query(ROLES_DB_ID)
     exec_pages = notion.databases.query(EXECUTIVES_DB_ID)
+    
 
     # extract roles from roles database
     notion_id_to_role_name:dict[str, str] = {}
@@ -53,92 +91,36 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         p = role["properties"]
         notion_id_to_role_name[role["id"]] = propTextExtractor(p["Name"])
 
+
+
     # extract only the information that we need:
     executives: list[LCSCExecutive] = []
-    executive_images: dict[str, str] = {}
-    
-    all_stale = True
-    
-    if local_data == []:
-        all_stale = False
-    
-    # check to see if all data is stale : if it is then we can exit early.
-    for page in exec_pages["results"]:
-        assert page["object"] == "page"
-        
-        p = page["properties"]
-        
-        last_updated = page["last_edited_time"]
-        page_id = page["id"]  # Use page_id instead of student_id
-        
-        # Check if page_id is null or doesn't exist
-        if not page_id:  # If page_id is None or empty
-            logger.warning(f"Skipping entry due to missing page_id for page: {page['id']}")
-            continue  # Skip this entry
-        
-        # don't go through the trouble of everything if the page hasn't changed
-        # right now everything is simply downloading the exec images
-        for exec in local_data:
-            if "page_id" in exec and exec["page_id"] == page_id:  # Check if key exists
-                if last_updated != exec["last_updated"]:
-                    all_stale = False
-                    break
-        
-        if not all_stale:
-            break
-    
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    
-    if all_stale:
-        logger.info("No new executive data found in Notion.")
-        return False
-    
-
+    executive_images: dict[str, str] = {}    
     update_count = 0
     
-
-    # Check for deleted executives in cached data
-    cached_event_ids = {exec["page_id"] for exec in local_data if "page_id" in exec}
-    current_event_ids = {page["id"] for page in exec_pages["results"]}
-    deleted_event_ids = cached_event_ids - current_event_ids
-    # Remove deleted executives from cached data and delete associated images
-    for page_id in deleted_event_ids:
-        # Remove executive from cached data
-        local_data = [exec for exec in local_data if exec["page_id"] != page_id]
-        # Delete associated image if it exists
-        image_path = f"{writeLocation}/exec_images/{page_id}.*"  # Adjusted to use page_id
-        for ext in ['webp', 'jpg', 'png', 'jpeg', 'gif']:
-            full_image_path = f"{writeLocation}/exec_images/{page_id}.{ext}"
-            if exists(full_image_path):
-                os.remove(full_image_path)
-                logger.info(f"Removed image for executive {page_id} at {full_image_path}.")  # Log removal
     
-    
+    # loop through each executive page
     for page in exec_pages["results"]:
-        
-        assert page["object"] == "page"
-        
+                
         p = page["properties"]
         
         page_last_updated = page["last_edited_time"]
-        page_id = page["id"]  # Use page_id instead of student_id
-        
-        # Skip entry if page_id is not valid
-        if not page_id:
-            logger.warning(f"Skipping entry due to missing page_id for page: {page['id']}")
-            continue  # Skip this entry
+        page_id = page["id"]
         
         # Check if the page has been updated
         stale_data = False
         
-        for exec in local_data:
-            if exec.get("id") == page_id:  # Compare with page_id
-                if page_last_updated == exec["last_updated"]:
-                    stale_data = True
-                    break
+        if local_data:
+            for exec in local_data.executives:
+                if exec.get("id") == page_id:  # Compare with page_id
+                    if page_last_updated == exec["last_updated"]:
+                        stale_data = True
+                        break
+            # logger.info("New executive found.")
         
-        if not stale_data:
+        if stale_data:
+            continue # go to next executive
+        else:
             update_count += 1
         
         # special code is needed to handle relations in the db
@@ -153,11 +135,22 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         
         if past_roles != None:
             past_roles = [notion_id_to_role_name[x] for x in past_roles]
+        else:
+            past_roles = []
         
         # get social media links
         sc_links = {}
         if (propTextExtractor(p[t.linkedin]) != None):
             sc_links["linkedin"] = propTextExtractor(p["LinkedIn"])
+        
+        if (propTextExtractor(p[t.instagram]) != None):
+            sc_links["instagram"] = propTextExtractor(p["Instagram"])
+            
+        if (propTextExtractor(p[t.github]) != None):
+            sc_links["github"] = propTextExtractor(p["Github"])
+        
+        if (propTextExtractor(p[t.website]) != None):
+            sc_links["website"] = propTextExtractor(p["Website"])
             
         # TODO: add more social media links here
         
@@ -183,10 +176,9 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
             executive_images[page_id] = None
         
         
-        
         e = LCSCExecutive(
             name =              propTextExtractor(p["Name"]),
-            full_name =         propTextExtractor(p["Legal Name"]),
+            # full_name =         propTextExtractor(p["Legal Name"]), # not needed.
             pronouns =          propTextExtractor(p["Pronouns"]),
             profile_picture =   executive_images[page_id],
             social_media_links= sc_links,
@@ -226,7 +218,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         elif "Vice" in str(e.roles):
             vps.append(e)
         
-        elif "Director" in str(e.roles):
+        elif "Director" in str(e.roles) or "Tech Lead" in str(e.roles):
             directors.append(e)
         
         else:
@@ -244,14 +236,24 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     executives_ordered.extend(other)
     
     with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
-        out = []
+        current_time = datetime.now(timezone.utc)
+        iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         
-        for e in executives_ordered:
-            out.append(e.model_dump())
+        metadata = PageMetadata(
+            roles_last_edited=roles_table['last_edited_time'],
+            execs_last_edited=exec_table['last_edited_time'],
+            last_checked=iso_timestamp
+        )
         
-        fi.write(json.dumps(out, indent=4))
+        
+        out:LCSCExecutiveContainer = LCSCExecutiveContainer(
+            metadata=metadata,
+            executives = executives_ordered
+        )
+        
+        fi.write(out.model_dump_json(indent=4))
     
-    logger.info(f"{update_count} executive updates found and saved locally.")
+    logger.info(f"{update_count} executive updates saved locally.")
     return True
 
 

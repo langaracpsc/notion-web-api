@@ -3,8 +3,7 @@ from pydantic import BaseModel
 
 class LCSCExecutive(BaseModel):
     # information on the executive
-    name: str
-    full_name: str | None
+    name: str | None
     pronouns: str | None
     profile_picture: str | None
     social_media_links: dict[str, str]
@@ -12,7 +11,7 @@ class LCSCExecutive(BaseModel):
     
     # information on their term with the club
     roles: list[str]
-    prior_roles: list[str] | None
+    prior_roles: list[str]
     first_term: str | None
     last_term: str | None
     current_status: str | None
@@ -48,7 +47,7 @@ class LCSCExecutive(BaseModel):
             ]
         }
     }
-    
+
 
 class LCSCEvent(BaseModel):
     event_name: str | None
@@ -75,3 +74,16 @@ class LCSCEvent(BaseModel):
             ]
         }
     }
+    
+class PageMetadata(BaseModel):
+    roles_last_edited: str
+    execs_last_edited: str
+    last_checked: str
+
+class LCSCExecutiveContainer(BaseModel):
+    metadata: PageMetadata
+    executives: list[LCSCExecutive]
+    
+class LCSCEventContainer(BaseModel):
+    metadata: PageMetadata
+    executives: list[LCSCEvent]
