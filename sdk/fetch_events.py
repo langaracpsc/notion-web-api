@@ -108,8 +108,11 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
             update_count += 1
 
         # Process image if present
-        if stale_data:
-            pass
+        
+        # if data is stale then don't redownload the image
+        if p["Thumbnail"]["files"] and stale_data:
+            event_images[page_id] = image_filename_to_url("events/images", f"{page_id}.{file_extension}")
+            
         elif p["Thumbnail"]["files"]:
             file_name = p["Thumbnail"]["files"][0]["name"]
             file_url = (
