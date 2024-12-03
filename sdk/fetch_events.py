@@ -103,12 +103,14 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                     break
 
         if stale_data:
-            continue
+            pass
         else:
             update_count += 1
 
         # Process image if present
-        if p["Thumbnail"]["files"]:
+        if stale_data:
+            pass
+        elif p["Thumbnail"]["files"]:
             file_name = p["Thumbnail"]["files"][0]["name"]
             file_url = (
                 p["Thumbnail"]["files"][0]["file"]["url"]
