@@ -40,38 +40,40 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
 
     notion = Client(auth=environ.get("NOTION_API_TOKEN"))
 
-    # Retrieve database metadata
-    events_table = notion.databases.retrieve(EVENTS_DB_ID)
-    recurring_table = notion.databases.retrieve(RECURRING_EVENTS_LIST_DB_ID)
-
-    # Check for updates
+    event_pages = notion.databases.query(EVENTS_DB_ID)
+    
+    update_count = 0
+    events_latest_update = ""
     if local_data:
-        there_are_new_edits = False
+        events_latest_update = local_data.metadata.events_last_edited
+    
+    if local_data:
+        for page in event_pages["results"]:
+            p = page["properties"]
+            stale_data = False
+            
+            for event in local_data.events:
+                if event.id == page["id"] and event.last_edited_time == page["last_edited_time"]:
+                    stale_data = True
+                    break
 
-        if events_table["last_edited_time"] != local_data.metadata.events_last_edited:
-            there_are_new_edits = True
+            if not stale_data:
+                update_count += 1
+                if page["last_edited_time"] > events_latest_update:
+                    events_latest_update = page["last_edited_time"]
 
-        if recurring_table["last_edited_time"] != local_data.metadata.recurring_last_edited:
-            there_are_new_edits = True
-
-        if not there_are_new_edits:
+        # if there are no new updates then we should save the time that we last checked and then exit.
+        if update_count == 0:
             current_time = datetime.now(timezone.utc)
             iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             local_data.metadata.last_checked = iso_timestamp
-
             with open(f"{writeLocation}/json/events_export.json", "w") as fi:
                 fi.write(local_data.model_dump_json(indent=4))
-
             return False
 
-    # If updates are found, process the data
-    logger.info("Event updates found.")
-
-    event_pages = notion.databases.query(EVENTS_DB_ID)
-    recurring_pages = notion.databases.query(RECURRING_EVENTS_LIST_DB_ID)
-
-
     # Extract recurring events
+    recurring_pages = notion.databases.query(RECURRING_EVENTS_LIST_DB_ID)
+    
     recurring_events = {}
     for page in recurring_pages["results"]:
         recurring_events[page["id"]] = {
@@ -82,29 +84,27 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     # Extract event data
     events = []
     event_images = {}
-    update_count = 0
+    
+    
 
     for page in event_pages["results"]:
         p = page["properties"]
 
         page_last_updated = page["last_edited_time"]
         page_id = page["id"]
-
+        
         stale_data = False
         if local_data:
             for event in local_data.events:
-                if event.id == page_id and event.last_edited_time == page_last_updated:
-                    stale_data = True
-                    break
-
-        if stale_data:
-            pass
-        else:
-            update_count += 1
+                if event.id == page["id"]:  # Compare with page_id
+                    if page_last_updated == event.last_edited_time:
+                        stale_data = True
 
         # Process image if present
         
         # if data is stale then don't redownload the image
+        # yes this means that we aren't checking that the image specifically was updated, just the page
+        # but i don't care enough to architect it properly at this point
         if p["Thumbnail"]["files"] and stale_data:
             file_name = p["Thumbnail"]["files"][0]["name"]
             file_extension = file_name.split(".")[-1].lower()
@@ -162,8 +162,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
     metadata = EventPageMetadata(
-        events_last_edited=events_table["last_edited_time"],
-        recurring_last_edited=recurring_table["last_edited_time"],
+        events_last_edited=events_latest_update,
         last_checked=iso_timestamp,
     )
 
@@ -176,9 +175,11 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         fi.write(container.model_dump_json(indent=4))
 
 
-
-    logger.info(f"{update_count} event updates saved locally.")
-    return True
+    if update_count > 0:
+        logger.info(f"{update_count} event updates saved locally.")
+        return True
+    else:
+        return False
 
 
 if __name__ == "__main__":

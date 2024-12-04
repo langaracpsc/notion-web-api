@@ -48,12 +48,14 @@ if create_folder_if_not_existing(f"{WRITE_LOCATION}exec_images/"):
 if create_folder_if_not_existing(f"{WRITE_LOCATION}json/"):
     logger.info(f"Creating directory at {WRITE_LOCATION}json/")
 
-events_log = 0
-execs_log = 0
+events_log = 999
+execs_log = 999
 UPDATE_FREQUENCY = 20
 
 def fetch_events_wrapper():
     global events_log
+    if events_log >= UPDATE_FREQUENCY:
+        logger.info("Checking events page for updates.")
     if fetch_events():
         updateDependencies()
     else:
@@ -64,6 +66,8 @@ def fetch_events_wrapper():
 
 def fetch_execs_wrapper():
     global execs_log
+    if execs_log >= UPDATE_FREQUENCY:
+        logger.info("Checking executives page for updates.")
     if fetch_execs():
         updateDependencies()
     else:

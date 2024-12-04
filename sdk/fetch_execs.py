@@ -50,46 +50,8 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     
     notion = Client(auth=environ.get("NOTION_API_TOKEN"))
     
-    
-    # we get the tables first because they contain a lot less data and return faster
-    # we can check the last_edited_time from here and exit early if there are no new updates
-    roles_table = notion.databases.retrieve(ROLES_DB_ID)
-    exec_table = notion.databases.retrieve(EXECUTIVES_DB_ID)
-    
-    
-    if local_data:
-        there_are_new_edits = False
-        
-        if roles_table['last_edited_time'] != local_data.metadata.roles_last_edited:
-            there_are_new_edits = True
-        
-        if exec_table['last_edited_time'] != local_data.metadata.execs_last_edited:
-            there_are_new_edits = True
-    
-        if not there_are_new_edits:
-            current_time = datetime.now(timezone.utc)
-            iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            local_data.metadata.last_checked = iso_timestamp
-            
-            with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
-                fi.write(local_data.model_dump_json(indent=4))
-            
-            return False
-            
-    # if we find something then announce it
-    logger.info("Executive updates found.")
 
-    role_pages = notion.databases.query(ROLES_DB_ID)
     exec_pages = notion.databases.query(EXECUTIVES_DB_ID)
-    
-
-    # extract roles from roles database
-    notion_id_to_role_name:dict[str, str] = {}
-    # {'92bb0840-1a89-4c45-b767-911819e8ef04': 'Vice President'} etc.
-
-    for role in role_pages["results"]:
-        p = role["properties"]
-        notion_id_to_role_name[role["id"]] = propTextExtractor(p["Name"])
 
 
 
@@ -97,32 +59,59 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     executives: list[LCSCExecutive] = []
     executive_images: dict[str, str] = {}    
     update_count = 0
+    execs_latest_update = ""
+    if local_data:
+        execs_latest_update = local_data.metadata.execs_last_edited
     
     
-    # loop through each executive page
-    for page in exec_pages["results"]:
-                
-        p = page["properties"]
-        
-        page_last_updated = page["last_edited_time"]
-        page_id = page["id"]
-        
-        # Check if the page has been updated
-        stale_data = False
-        
-        if local_data:
+    # look for changes.
+    if local_data:
+        for page in exec_pages["results"]:
+            p = page["properties"]
+            stale_data = False
+            
             for exec in local_data.executives:
-                if exec.get("id") == page_id:  # Compare with page_id
-                    if page_last_updated == exec["last_updated"]:
+                if exec.id == page["id"]:  # Compare with page_id
+                    if page["last_edited_time"] == exec.last_edited_time:
                         stale_data = True
                         break
-            # logger.info("New executive found.")
+            
+            if not stale_data:
+                update_count += 1
+                if page["last_edited_time"] > execs_latest_update:
+                    execs_latest_update = page["last_edited_time"]
         
-        if stale_data:
-            continue # go to next executive
-        else:
-            update_count += 1
+        # if there are no new updates then we should save the time that we last checked and then exit.
+        if update_count == 0:
+            current_time = datetime.now(timezone.utc)
+            iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            local_data.metadata.last_checked = iso_timestamp
+            with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
+                fi.write(local_data.model_dump_json(indent=4))
+            return False
+    
+    
+    
+     # extract roles from roles database
+    role_pages = notion.databases.query(ROLES_DB_ID)
+    
+    notion_id_to_role_name:dict[str, str] = {} # {'92bb0840-1a89-4c45-b767-911819e8ef04': 'Vice President'} etc.
+    for role in role_pages["results"]:
+        p = role["properties"]
+        notion_id_to_role_name[role["id"]] = propTextExtractor(p["Name"])
+    
+    for page in exec_pages["results"]:   
+        p = page["properties"]
+        page_last_edited_time = page["last_edited_time"]
+        page_id = page["id"]
         
+        stale_data = False
+        if local_data:
+            for exec in local_data.executives:
+                if exec.id == page["id"]:  # Compare with page_id
+                    if page_last_edited_time == exec.last_edited_time:
+                        stale_data = True
+         
         # special code is needed to handle relations in the db
         current_roles = multiplePropTextExtractor(p["Role"])
         past_roles = multiplePropTextExtractor(p["Prior Roles"])
@@ -138,7 +127,8 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         else:
             past_roles = []
         
-        # get social media links
+        # SOCIAL MEDA LINKS
+        # yes they are hardcoded...
         sc_links = {}
         if (propTextExtractor(p[t.linkedin]) != None):
             sc_links["linkedin"] = propTextExtractor(p["LinkedIn"])
@@ -152,13 +142,12 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         if (propTextExtractor(p[t.website]) != None):
             sc_links["website"] = propTextExtractor(p["Website"])
             
-        # TODO: add more social media links here
+        
         
         # download the image for each exec, if available
-        
         # don't actually request the image if we know it hasn't changed
         if p["Candid"]["files"] != [] and stale_data:
-            file_name = p["Thumbnail"]["files"][0]["name"]
+            file_name = p["Candid"]["files"][0]["name"]
             file_extension = file_name.split(".")[-1].lower()
             executive_images[page_id] = image_filename_to_url("executives/images", f"{page_id}.{file_extension}")
             
@@ -169,9 +158,9 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
             file_extension:str = file_name.split('.')[-1]
             
             known_filetype = True
-            if file_extension not in ["webp", "jpg", "png", "jpeg", "gif"]:
+            if file_extension.lower() not in ["webp", "jpg", "png", "jpeg", "gif"]:
                 known_filetype = False
-                logger.warn(f"Saving image with unsupported image filetype for {propTextExtractor(p['Title'])} and skipping compression at {page_id}.{file_extension}")
+                logger.warn(f"Saving image with unsupported image filetype for {propTextExtractor(p['Name'])} and skipping compression at {page_id}.{file_extension}")
             
             
             file_path = f"data/exec_images/{page_id}.{file_extension}"
@@ -183,7 +172,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                 if known_filetype:
                     attempt_compress_image(file_path)
             except Exception as e:
-                logger.warn(f"Failed to compress image for {propTextExtractor(p['Title'])} ({page_id}.{file_extension}) {e}")
+                logger.warn(f"Failed to compress image for {propTextExtractor(p['Name'])} ({page_id}.{file_extension}) {e}")
             
             
             executive_images[page_id] = image_filename_to_url("executives/images", f"{page_id}.{file_extension}")
@@ -206,16 +195,11 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
             current_status =    propTextExtractor(p["Status"]),
             
             id =                page_id,  # Use page_id as id
-            last_updated =      page_last_updated
+            last_edited_time =      page_last_edited_time
         )
             
         executives.append(e)
         
-    # with open(f"{writeLocation}/json/roles_notion.json", "w", encoding="utf-8") as fi:
-    #     fi.write(json.dumps(role_pages, indent=4))
-        
-    # with open(f"{writeLocation}/json/execs_notion.json", "w", encoding="utf-8") as fi:
-    #     fi.write(json.dumps(exec_pages, indent=4))
     
     # sort the output
     presidents:list[LCSCExecutive] = [] # list in case we ever have a copresident
@@ -254,8 +238,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
     
     metadata = ExecPageMetadata(
-        roles_last_edited=roles_table['last_edited_time'],
-        execs_last_edited=exec_table['last_edited_time'],
+        execs_last_edited=execs_latest_update,
         last_checked=iso_timestamp
     )
     
@@ -269,8 +252,11 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
         fi.write(out.model_dump_json(indent=4))
     
-    logger.info(f"{update_count} executive updates saved locally.")
-    return True
+    if update_count > 0:
+        logger.info(f"{update_count} executive updates saved locally.")
+        return True
+    else:
+        return False
 
 
 if __name__ == "__main__":

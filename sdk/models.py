@@ -18,7 +18,7 @@ class LCSCExecutive(BaseModel):
     
     # meta information
     id: str
-    last_updated: str
+    last_edited_time: str
     
     model_config = {
         "json_schema_extra": {
@@ -42,7 +42,7 @@ class LCSCExecutive(BaseModel):
                     "last_term" : None,
                     "current_status" : "Active",
                     "id" : "100399310",
-                    "last_updated" : "2024-04-18T11:31:00.000Z"
+                    "last_edited_time" : "2024-04-18T11:31:00.000Z"
                 }
             ]
         }
@@ -78,14 +78,12 @@ class LCSCEvent(BaseModel):
     }
     
 class ExecPageMetadata(BaseModel):
-    roles_last_edited: str
     execs_last_edited: str
     last_checked: str
 
 
 class EventPageMetadata(BaseModel):
     events_last_edited: str
-    recurring_last_edited: str
     last_checked: str
 
 class LCSCExecutiveContainer(BaseModel):
