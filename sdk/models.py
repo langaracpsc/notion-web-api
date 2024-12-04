@@ -51,6 +51,7 @@ class LCSCExecutive(BaseModel):
 
 class LCSCEvent(BaseModel):
     event_name: str | None
+    semester: str | None
     event_date: str | None
     event_start_date: str | None
     event_end_date: str | None

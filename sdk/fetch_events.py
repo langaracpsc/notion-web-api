@@ -145,6 +145,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
             LCSCEvent(
                 event_name=propTextExtractor(p["Title"]),
                 event_date=create_human_readable_date(start, end),
+                semester=propTextExtractor(p["Semester"]),
                 event_start_date=start,
                 event_end_date=end,
                 location=propTextExtractor(p["Location"]),
@@ -171,7 +172,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         events=sorted(events, key=lambda e: e.event_start_date or "", reverse=True)
     )
     
-    with open(f"{writeLocation}/json/events_export.json", "w") as fi:
+    with open(f"{writeLocation}/json/events_export.json", "w", encoding="utf-8") as fi:
         fi.write(container.model_dump_json(indent=4))
 
 
