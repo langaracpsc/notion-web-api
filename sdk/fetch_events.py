@@ -69,12 +69,8 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
 
     event_pages = notion.databases.query(EVENTS_DB_ID)
     recurring_pages = notion.databases.query(RECURRING_EVENTS_LIST_DB_ID)
-    
-    with open("temp.json", "w") as fi:
-        import json
-        fi.write(json.dumps(event_pages, indent=4))
 
-    input()
+
     # Extract recurring events
     recurring_events = {}
     for page in recurring_pages["results"]:
