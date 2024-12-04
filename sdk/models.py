@@ -57,6 +57,7 @@ class LCSCEvent(BaseModel):
     location: str | None
     thumbnail: str | None
     registration_link: str | None
+    information_link: str | None
     
     id: str
     last_edited_time: str 

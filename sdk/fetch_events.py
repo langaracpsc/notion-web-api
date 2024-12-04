@@ -155,6 +155,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                 location=propTextExtractor(p["Location"]),
                 thumbnail=event_images[page_id],
                 registration_link=propTextExtractor(p["Registration Link"]),
+                information_link=propTextExtractor(p["Info Link"]),
                 last_edited_time=page_last_updated,
                 id=page_id,
             )
