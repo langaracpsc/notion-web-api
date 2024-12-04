@@ -250,22 +250,23 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     executives_ordered.extend(directors)
     executives_ordered.extend(other)
     
+    current_time = datetime.now(timezone.utc)
+    iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    
+    metadata = ExecPageMetadata(
+        roles_last_edited=roles_table['last_edited_time'],
+        execs_last_edited=exec_table['last_edited_time'],
+        last_checked=iso_timestamp
+    )
+    
+    
+    out:LCSCExecutiveContainer = LCSCExecutiveContainer(
+        metadata=metadata,
+        executives = executives_ordered
+    )
+    
+    
     with open(f"{writeLocation}/json/execs_export.json", "w") as fi:
-        current_time = datetime.now(timezone.utc)
-        iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        
-        metadata = ExecPageMetadata(
-            roles_last_edited=roles_table['last_edited_time'],
-            execs_last_edited=exec_table['last_edited_time'],
-            last_checked=iso_timestamp
-        )
-        
-        
-        out:LCSCExecutiveContainer = LCSCExecutiveContainer(
-            metadata=metadata,
-            executives = executives_ordered
-        )
-        
         fi.write(out.model_dump_json(indent=4))
     
     logger.info(f"{update_count} executive updates saved locally.")

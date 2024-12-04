@@ -174,8 +174,11 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         metadata=metadata, 
         events=sorted(events, key=lambda e: e.event_start_date or "", reverse=True)
     )
-
     
+    with open(f"{writeLocation}/json/events_export.json", "w") as fi:
+        fi.write(container.model_dump_json(indent=4))
+
+
 
     logger.info(f"{update_count} event updates saved locally.")
     return True
