@@ -123,16 +123,24 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                 else p["Thumbnail"]["files"][0]["external"]["url"]
             )
             file_extension = file_name.split(".")[-1].lower()
-
-            assert file_extension in ["webp", "jpg", "png", "jpeg", "gif"]
+            
+            known_filetype = True
+            if file_extension not in ["webp", "jpg", "png", "jpeg", "gif"]:
+                known_filetype = False
+                logger.warn(f"Saving image with unsupported image filetype for {propTextExtractor(p['Title'])} and skipping compression at {page_id}.{file_extension}")
 
             file_path = f"{writeLocation}/event_images/{page_id}.{file_extension}"
             with open(file_path, "wb") as fi:
                 r = requests.get(file_url)
                 fi.write(r.content)
-
-            attempt_compress_image(file_path)
-            event_images[page_id] = image_filename_to_url("events/images", f"{page_id}.{file_extension}")
+                event_images[page_id] = image_filename_to_url("events/images", f"{page_id}.{file_extension}")
+                
+            try:
+                if known_filetype:
+                    attempt_compress_image(file_path)
+            except Exception as e:
+                logger.warn(f"Failed to compress image for {propTextExtractor(p['Title'])} ({page_id}.{file_extension}) {e}")
+            
         else:
             event_images[page_id] = None
 

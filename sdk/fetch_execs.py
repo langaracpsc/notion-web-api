@@ -155,21 +155,36 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         # TODO: add more social media links here
         
         # download the image for each exec, if available
+        
+        # don't actually request the image if we know it hasn't changed
+        if p["Candid"]["files"] != [] and stale_data:
+            file_name = p["Thumbnail"]["files"][0]["name"]
+            file_extension = file_name.split(".")[-1].lower()
+            executive_images[page_id] = image_filename_to_url("executives/images", f"{page_id}.{file_extension}")
+            
+            
         if (p["Candid"]["files"] != []):
             file_name:str = p["Candid"]["files"][0]["name"]
             file_url:str = p["Candid"]["files"][0]["file"]["url"]
             file_extension:str = file_name.split('.')[-1]
             
-            assert file_name.split(".")[-1].lower() in ["webp", "jpg", "png", "jpeg", ".gif"]
+            known_filetype = True
+            if file_extension not in ["webp", "jpg", "png", "jpeg", "gif"]:
+                known_filetype = False
+                logger.warn(f"Saving image with unsupported image filetype for {propTextExtractor(p['Title'])} and skipping compression at {page_id}.{file_extension}")
             
-            # don't actually request the image if we know it hasn't changed
-            if not stale_data:
-                file = f"data/exec_images/{page_id}.{file_extension}"
-                with open(file, "wb") as fi:
-                    r = requests.get(file_url)
-                    fi.write(r.content)            
-                
-                attempt_compress_image(file)
+            
+            file_path = f"data/exec_images/{page_id}.{file_extension}"
+            with open(file_path, "wb") as fi:
+                r = requests.get(file_url)
+                fi.write(r.content)            
+            
+            try:
+                if known_filetype:
+                    attempt_compress_image(file_path)
+            except Exception as e:
+                logger.warn(f"Failed to compress image for {propTextExtractor(p['Title'])} ({page_id}.{file_extension}) {e}")
+            
             
             executive_images[page_id] = image_filename_to_url("executives/images", f"{page_id}.{file_extension}")
         else:
