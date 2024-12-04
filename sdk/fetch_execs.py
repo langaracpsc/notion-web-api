@@ -82,7 +82,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                 if page["last_edited_time"] > execs_latest_update:
                     execs_latest_update = page["last_edited_time"]
         
-        if len(local_data.events) != len(exec_pages["results"]):
+        if len(local_data.executives) != len(exec_pages["results"]):
             update_count += 1
         
         # if there are no new updates then we should save the time that we last checked and then exit.
