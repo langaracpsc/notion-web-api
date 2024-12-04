@@ -69,7 +69,6 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         for page in exec_pages["results"]:
             p = page["properties"]
             stale_data = False
-            found = False
             
             for exec in local_data.executives:
                 if exec.id == page["id"]:  # Compare with page_id
@@ -78,10 +77,13 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
                         stale_data = True
                         break
             
-            if not stale_data or not found:
+            if not stale_data:
                 update_count += 1
-                if page["last_edited_time"] > execs_latest_update and found:
+                if page["last_edited_time"] > execs_latest_update:
                     execs_latest_update = page["last_edited_time"]
+        
+        if len(local_data.events) != len(exec_pages["results"]):
+            update_count += 1
         
         # if there are no new updates then we should save the time that we last checked and then exit.
         if update_count == 0:
