@@ -76,15 +76,21 @@ class LCSCEvent(BaseModel):
         }
     }
     
-class PageMetadata(BaseModel):
+class ExecPageMetadata(BaseModel):
     roles_last_edited: str
     execs_last_edited: str
     last_checked: str
 
+
+class EventPageMetadata(BaseModel):
+    events_last_edited: str
+    recurring_last_edited: str
+    last_checked: str
+
 class LCSCExecutiveContainer(BaseModel):
-    metadata: PageMetadata
+    metadata: ExecPageMetadata
     executives: list[LCSCExecutive]
     
 class LCSCEventContainer(BaseModel):
-    metadata: PageMetadata
-    executives: list[LCSCEvent]
+    metadata: EventPageMetadata
+    events: list[LCSCEvent]

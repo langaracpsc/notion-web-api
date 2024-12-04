@@ -17,7 +17,7 @@ from sdk.helpers import attempt_compress_image, create_human_readable_date, imag
 
 logger = logging.getLogger("lcsc.execs")
 
-from sdk.models import LCSCExecutive, LCSCExecutiveContainer, PageMetadata
+from sdk.models import LCSCExecutive, LCSCExecutiveContainer, ExecPageMetadata
 
 EXECUTIVES_DB_ID = "23dbd8f8f9d84739aaf9c1f98c7cc842"
 ROLES_DB_ID = "64911354b5e24d639c00c3d39e54276c"
@@ -42,10 +42,10 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         with open(f"{writeLocation}/json/execs_export.json", "r") as fi:
             data = fi.read()
             if data:
-                # try:
-                local_data = LCSCExecutiveContainer.model_validate_json(data)
-                # except:
-                #     logger.error("Failed to validate existing json")
+                try:
+                    local_data = LCSCExecutiveContainer.model_validate_json(data)
+                except Exception as e:
+                    logger.error(f"Failed to read existing local executive data: {e}")
     
     
     notion = Client(auth=environ.get("NOTION_API_TOKEN"))
@@ -254,7 +254,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         current_time = datetime.now(timezone.utc)
         iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         
-        metadata = PageMetadata(
+        metadata = ExecPageMetadata(
             roles_last_edited=roles_table['last_edited_time'],
             execs_last_edited=exec_table['last_edited_time'],
             last_checked=iso_timestamp

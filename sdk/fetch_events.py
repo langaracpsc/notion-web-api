@@ -13,7 +13,7 @@ from sdk.helpers import (
     image_filename_to_url,
     propTextExtractor
 )
-from sdk.models import LCSCEvent
+from sdk.models import LCSCEvent, EventPageMetadata, LCSCEventContainer
 
 logger = logging.getLogger("lcsc.events")
 
@@ -21,15 +21,6 @@ EVENTS_DB_ID = "0260157bf43c4c96aefec1764d428030"
 RECURRING_EVENTS_LIST_DB_ID = "47bac84297d84de781b875be50020ef0"
 
 
-class PageMetadata(BaseModel):
-    events_last_edited: str
-    recurring_last_edited: str
-    last_checked: str
-
-
-class LCSCEventContainer(BaseModel):
-    metadata: PageMetadata
-    events: list[LCSCEvent]
 
 
 def updateDataFromNotion(writeLocation="data/") -> bool:
@@ -42,7 +33,10 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         with open(f"{writeLocation}/json/events_export.json", "r") as fi:
             data = fi.read()
             if data:
-                local_data = LCSCEventContainer.model_validate_json(data)
+                try:
+                    local_data = LCSCEventContainer.model_validate_json(data)
+                except Exception as e:
+                    logger.error(f"Failed to read existing local events data: {e}")
 
     notion = Client(auth=environ.get("NOTION_API_TOKEN"))
 
@@ -75,7 +69,12 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
 
     event_pages = notion.databases.query(EVENTS_DB_ID)
     recurring_pages = notion.databases.query(RECURRING_EVENTS_LIST_DB_ID)
+    
+    with open("temp.json", "w") as fi:
+        import json
+        fi.write(json.dumps(event_pages, indent=4))
 
+    input()
     # Extract recurring events
     recurring_events = {}
     for page in recurring_pages["results"]:
@@ -165,7 +164,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
     current_time = datetime.now(timezone.utc)
     iso_timestamp = current_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
-    metadata = PageMetadata(
+    metadata = EventPageMetadata(
         events_last_edited=events_table["last_edited_time"],
         recurring_last_edited=recurring_table["last_edited_time"],
         last_checked=iso_timestamp,
@@ -176,8 +175,7 @@ def updateDataFromNotion(writeLocation="data/") -> bool:
         events=sorted(events, key=lambda e: e.event_start_date or "", reverse=True)
     )
 
-    with open(f"{writeLocation}/json/events_export.json", "w", encoding='utf-8') as fi:
-        fi.write(container.model_dump_json(indent=4))
+    
 
     logger.info(f"{update_count} event updates saved locally.")
     return True
